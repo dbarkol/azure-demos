@@ -26,21 +26,38 @@ namespace ProcessOrdersApp
         #endregion
 
         [FunctionName("ProcessOrder")]
-        public static void Run(
-            [ServiceBusTrigger("orders", Connection = "ServiceBusConnectionString")]string order, 
+        //public static void Run(
+        public static async Task Run(
+            [ServiceBusTrigger("orders", Connection = "ServiceBusConnectionString")]string order,
+            [CosmosDB(
+                databaseName: "ordersDatabase",
+                collectionName: "ordersCollection",
+                ConnectionStringSetting = "CosmosDBConnectionString")] IAsyncCollector<OrderEvent> documents,
             ILogger log)
         {
-            // Retrieve the order details from the message 
+            // Retrieve the order details from the queue
             var orderDetails = JsonConvert.DeserializeObject<Order>(order);
             log.LogInformation($"Order received: {orderDetails.Sku} - {orderDetails.Quantity}");
 
+            // Create an order event. We will use this to publish to 
+            // event grid as well as record in Cosmos DB.
+            var orderEvent = new OrderEvent
+            {
+                OrderId = Guid.NewGuid(),  
+                Sku = orderDetails.Sku,
+                Quantity = orderDetails.Quantity
+            };
+
             // Publish an event that the order has been received
-            PublishOrderEvent(orderDetails).GetAwaiter().GetResult();
+            await PublishOrderEvent(orderEvent);
+
+            // Create a new document in Cosmos with the order details
+            await documents.AddAsync(orderEvent);
         }
 
         #region Private Methods
 
-        private static async Task PublishOrderEvent(Order orderDetails)
+        private static async Task PublishOrderEvent(OrderEvent orderEvent)
         {
             // Initialize the event grid client with the access key
             ServiceClientCredentials credentials = new TopicCredentials(EventGridKey);
@@ -53,14 +70,9 @@ namespace ProcessOrdersApp
                 new EventGridEvent()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    Data = new OrderEvent
-                    {
-                        OrderId = Guid.NewGuid(),
-                        Sku = orderDetails.Sku,
-                        Quantity = orderDetails.Quantity
-                    },
+                    Data = orderEvent,
                     EventTime = DateTime.UtcNow,
-                    EventType = orderDetails.Quantity > 1000 ? "NewOrder.Large" : "NewOrder.Regular",
+                    EventType = orderEvent.Quantity > 1000 ? "NewOrder.Large" : "NewOrder.Regular",
                     Subject = "demo/orders/new",
                     DataVersion = "1.0"
                 }
