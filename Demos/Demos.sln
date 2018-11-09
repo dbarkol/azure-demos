@@ -5,6 +5,11 @@ VisualStudioVersion = 15.0.28010.2050
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcessOrdersApp", "ProcessOrdersApp\ProcessOrdersApp.csproj", "{778961A6-B299-4391-A765-2051737D7411}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "APIM", "APIM", "{238617B9-C9F1-4338-9AB4-255185869627}"
+	ProjectSection(SolutionItems) = preProject
+		PlaceOrder.xml = PlaceOrder.xml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -1,0 +1,26 @@
+﻿<policies>
+  <inbound>
+    <base />
+    <set-header name="Authorization" exists-action="skip">
+      <value>{{ServiceBusSasToken}}</value>
+    </set-header>
+    <set-header name="BrokerProperties" exists-action="override">
+      <value>@{
+        var json = new JObject();
+        json.Add("MessageId", context.RequestId);
+        return json.ToString(Newtonsoft.Json.Formatting.None);
+        }</value>
+    </set-header>
+    <set-backend-service base-url="{{ServiceBusEndpoint}}" />
+    <rewrite-uri template="/orders/messages" />
+  </inbound>
+  <backend>
+    <base />
+  </backend>
+  <outbound>
+    <base />
+  </outbound>
+  <on-error>
+    <base />
+  </on-error>
+</policies>
